@@ -1,0 +1,46 @@
+
+# nettoyage d'un répertoire, avec conservation des seuls gifs
+
+catch {unset GIFS}
+foreach f [glob {*.[A-Z]-*}] {
+    if {![regexp {^([0-9A-Z]+).(.*).(gif|html|bad[#0-9]*)$} $f tout numero type format]} {
+	error "REGEXP $f"
+    }
+    set NUMEROS($numero) {}
+    if {$format != "gif"} {
+	file rename $f [file join prepoubelle $f]
+    } else {
+	lappend GIFS($numero) $f
+    }
+}
+
+set numeros [array names NUMEROS]
+puts $numeros
+
+set numeros {5491490 41277784 5173908 4772931 5227621 4720642 5115294 4727349 4746620 4695733 4218618 4277793 2641713 4568889 5432011 5255332 5411914 5598554 2790088 5148251 4918508 5283584 5051789 4777387 4922091 5291056 4434399 5631490 5631489 5649282 5146075 4899204 4749850 4851767 4984032 4636794 22991 5485271 4326126 4301592 4807006 4825061 4751513 5413067 5555895 4587541 4194162 4301362 5461246 5369283 H695 US05254850 4531143 3809953 5663639 5177486 5185586 4993033 4491977 4431914 5574464 5451769 4972069 5548234 5394415 5003168 5017793 5606168 3928865 4490709 5636050 5612255 5651045 4782222 3917943 4825081 4556790 H000695 US5254850 2402662 5401983 4831248 4329686 3378738 4691111 4525871 4633286 5028971 4347437 5521857 4626322 4329689 5473249 4368481 4675624 5399978 4119840 5515066 5341017 5571344 5486833 5293037 5280168 4897622 4675628 5621422 4933542 4127784 5047621 5408548 4176295 5155352 4916303 4438331 4494132 4482863 516807 4396833 5109203 4755663 5594256 4960989 4626883 5351063 5055810 4697096 4421914 4240088 4822991 5168069 4376285 4413178 5596209 5384798 5462903 4555622 4673864 4839510 4781442 3797831 5332918}
+
+proc newnum {numero} {
+    if {![regexp {^([A-Z]*)([0-9]+)$} $numero tout lettres chiffres]} {
+	error "newnum REGEXP $numero"
+    }
+    if {$lettres == {}} {
+	set lettres US
+    }
+    return $lettres[format %08d $chiffres]
+}
+
+foreach numero [array names GIFS] {
+    set newnum [newnum $numero]
+    if {$newnum != $numero} {
+	foreach f $GIFS($numero) {
+	    if {![regexp [join [list {^} $numero {(.E-p[0-9]+.gif)$}] ""] $f tout reste]} {
+		error "gif REGEXP $f"
+	    }
+	    puts -nonewline [list file rename $f ${newnum}${reste}]
+	    catch {file rename $f ${newnum}${reste}} message
+	    puts $message
+	}
+    }
+}
+
+

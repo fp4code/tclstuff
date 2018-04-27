@@ -1,0 +1,174 @@
+package provide pG-Lpn 1.0
+package require masque 1.0
+
+namespace eval pG-Lpn {
+        
+    variable xyDispo
+    variable type inconnu ;# psg ou jumbo
+
+    set xyDispo(O) [list 0 0] ;# O de PICOGIGA
+
+    set xyDispo(psg5x5)   [list  -120 -1610]
+    set xyDispo(psg5x10)  [list   130 -1610]
+    set xyDispo(psg5x20)  [list   380 -1610]
+    set xyDispo(psg5x40)  [list   630 -1610]
+    set xyDispo(psg5x80)  [list   880 -1610]
+    set xyDispo(psg10x10) [list  -120 -2050]
+    set xyDispo(psg10x20) [list   130 -2050]
+    set xyDispo(psg10x40) [list   380 -2050]
+    set xyDispo(psg10x60) [list   630 -2050]
+    set xyDispo(psg75x75) [list   880 -2050]
+
+    set xyDispo(jumbo50)  [list   1950 -2080]
+    set xyDispo(jumbo75)  [list   1460 -2080]
+    set xyDispo(jumbo100) [list   1460 -1590]
+
+
+
+}
+
+proc ::pG-Lpn::allSymDes {typDispo contourMasque} {
+    variable xyDispo
+    if {$typDispo == "psg"} {
+	set ret [list]
+	puts stderr ::pG-Lpn::allSymDes
+	foreach li {A B C D E F} {
+	    foreach co {1 2 3 4 5} {
+                if {"$li$co" == "F5"} continue
+		foreach dispo {psg5x5 psg5x10 psg5x20 psg5x40 psg5x80 psg10x10 psg10x20 psg10x40 psg10x60 psg75x75} {
+		    set symDes $li$co$dispo
+		    foreach {x y} [symDesToPos $symDes] {}
+		    puts stderr "$x $y"
+		    if {[geom2d::isInternal $contourMasque $x $y]} {
+			lappend ret $symDes
+		    }
+		}
+	    }
+	}
+	return $ret
+    } elseif {$typDispo == "jumbo"} {
+	set ret [list]
+	puts stderr ::pG-Lpn::allSymDes
+	foreach li {A B C D E F} {
+	    foreach co {1 2 3 4 5} {
+                if {"$li$co" == "F5"} continue
+		foreach dispo {jumbo50 jumbo75 jumbo100} {
+		    set symDes $li$co$dispo
+		    foreach {x y} [symDesToPos $symDes] {}
+		    # puts stderr "$symDes  $x $y -> [geom2d::isInternal $contourMasque $x $y]"
+		    if {[geom2d::isInternal $contourMasque $x $y]} {
+			lappend ret $symDes
+		    }
+		}
+	    }
+	}
+	return $ret
+    }
+    return {}
+}
+
+proc ::pG-Lpn::allTypDispo {} {
+    # rajouter les autres
+    return [list psg jumbo] ;# pont sous-gravé
+}
+
+proc recodeIt_toASCII { char } {
+    scan $char %c value
+    return $value
+}
+
+proc ::pG-Lpn::symDesToPos {symDes} {
+    variable xyDispo
+    
+    set li [string index $symDes 0]
+    set co [string index $symDes 1]
+    set dispo [string range $symDes 2 end] 
+
+    set xbloc [expr {($co - 1) * (-3500)}]
+
+    set ybloc [expr {([recodeIt_toASCII $li]-[recodeIt_toASCII A]) * (3500)}]
+
+    if {![info exists xyDispo($dispo)]} {
+	error "symDes $symDes : $dispo doit être [array names xyDispo]"
+    }
+    return [list \
+		[expr {$xbloc + [lindex $xyDispo($dispo) 0]}]\
+		[expr {$ybloc + [lindex $xyDispo($dispo) 1]}]]
+}
+
+proc ::pG-Lpn::geomName {symDes} {
+    set dispo [string range $symDes 2 end]
+    puts "$symDes -> $dispo"
+    return $dispo
+}
+
+proc ::pG-Lpn::getSurface {symDes} {
+    variable xyDispo
+    variable surfaceDispo
+    global gloglo
+    set dispo [::pG-Lpn::geomName $symDes]
+    if {![info exists xyDispo($dispo)]} {
+	error "symDes $symDes : $dispo doit être [array names xyDispo]"
+    }
+    if {[string match psg* $dispo]} {
+	set dims [split [string range $dispo 3 end] "x"]
+	set l [lindex $dims 0]
+	set L [lindex $dims 1]
+
+	set em 0.0
+	set surface [expr {($l - $em) * ($L - $em) }] 
+	puts stderr "dims = [expr {($l - $em)}]x[expr {($L - $em)}], surface = $surface um-2"
+	return $surface
+    } elseif {[string match jumbo* $dispo]} {
+	set l [string range $dispo 5 end]
+	set L $l
+
+	set em 0.0
+	set surface [expr {($l - $em) * ($L - $em) }] 
+	puts stderr "dims = [expr {($l - $em)}]x[expr {($L - $em)}], surface = $surface um-2"
+	return $surface
+    }
+    return -code error "dispo non codé dans pG-Lpn.tcl : $dispo"
+}
+
+
+proc ::pG-Lpn::triGeom {g1 g2} {
+    foreach {l1 L1} [split $g1 x] {}
+    foreach {l2 L2} [split $g2 x] {}
+    if {$l1 < $l2} {return -1}
+    if {$l1 > $l2} {return 1}
+    if {$L1 < $L2} {return -1}
+    if {$L1 > $L2} {return 1}
+    return 0
+}
+
+proc ::pG-Lpn::triGeomAsFirstElem {l1 l2} {
+    return [::pG-Lpn::triGeom [lindex $l1 0] [lindex $l2 0]]
+}
+
+proc ::pG-Lpn::configPointes {} {
+    variable type
+
+    
+    switch $type {
+	psg {
+	    GPIB::renameGPIB smuE {}
+	    GPIB::renameGPIB smuB {}
+	    GPIB::renameGPIB smuC {}
+	    GPIB::copyGPIB smu1 smuE
+	    GPIB::copyGPIB smu2 smuB
+	    GPIB::copyGPIB smu3 smuC
+	}
+	jumbo {
+	    GPIB::renameGPIB smuE {}
+	    GPIB::renameGPIB smuB {}
+	    GPIB::renameGPIB smuC {}
+	    GPIB::copyGPIB smu1 smuC
+	    GPIB::copyGPIB smu2 smuB
+	    GPIB::copyGPIB smu3 smuE
+	}
+	default {
+	    return -code error "La variable \"::pG-Lpn::type\" contient \"$type\" au lieu d'une des valeurs \"[allTypDispo]\""
+	}
+    }
+}

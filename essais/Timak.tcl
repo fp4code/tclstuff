@@ -1,0 +1,2 @@
+do default subdirs src
+#

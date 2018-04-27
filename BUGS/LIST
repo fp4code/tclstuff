@@ -1,0 +1,3 @@
+avec Tcl8.0, il parait difficile d'utiliser un même namespace-package réparti
+sur plusieurs fichiers.
+

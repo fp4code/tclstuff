@@ -1,0 +1,28 @@
+#!/bin/sh
+# \
+exec wish "$0" ${1+"$@"}
+
+# (C) CNRS/LPN (FP) 2001.03.20
+# (C) CNRS/LPN (FP) 2002.04.30
+
+lappend auto_path /bob/fab/A/fidev/Tcl
+package require fidev
+package require tkSuperTable 1.8
+puts "Supprimé: package require tkstcb_Diodir 0.1"
+package require tkstcb_gnuplot 2.4
+package require tkstcb_verifOptR 1.0
+
+if {$argc == 2 && [lindex $argv 0] == "-D"} {
+    set tkSuperTable::SUPERTABLES(workingDir) [lindex $argv 1]
+} else {
+    set tkSuperTable::SUPERTABLES(workingDir) /home/asdex
+}
+
+set font "-b&h-lucidatypewriter-medium-r-normal-sans-12-*-*-*-*-*-iso8859-1"
+option add *Font $font
+
+. configure -width 600
+set win [::tkSuperTable::sptLoader .]
+
+tkSuperTable::changeEntry $win.ecb callbacks::gnuplot
+

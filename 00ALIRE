@@ -1,0 +1,240 @@
+23 juin 1998
+
+	/prog/Tcl/lib/pkgIndex.tcl
+doit contenir
+	package ifneeded fidev 1.0\
+	        {package provide fidev 1.0; lappend auto_path /home/fidev/Tcl}
+
+Les fichiers constituant les packages
+doivent figurer directement dans chaque sous-répertoire. 
+Ces fichiers doivent comporter le suffixe .tcl
+
+Les fichiers exécutables directement liés à un package doivent figurer
+dans un sous-répertoire nomDuPackage/bin
+
+
+17 juin 1999
+
+Passage à Tcl8.1.1
+
+ni488 semble bogué: Boucle infinie autour du SRQ.
+
+	Je crois que le problème vient de la gestion des événements asynchrones.
+
+Voici la séquence:
+
+Les initialisations sont 
+    - asyncUSR1 = Tcl_AsyncCreate(AsyncUSR1, srqdataPtr);
+    - trace variable SRQstatus w GPIB:srqIsWritten
+
+
+SRQ déclenche "signal USR1"
+
+signal USR1 appelle "sigUSR1(USR1)"
+
+sigUSR1 - met à jour sigOn=0, appelle sigignore(SIGUSR1)
+	- appelle Tcl_AsyncMark(asyncUSR1)
+
+Lorsque TCL le veut, il appelle AsyncUSR1, qui appelle directement updateSRQ(interp, GPIB_board)
+
+updateSRQ
+    - lit les lignes GPIB
+    - vérifie l'absence d'erreur sur la carte
+    - met à jour la variable C "SRQstatus" en fonction de la ligne GPIB SRQ
+    - met à jour la variable Tcl "SRQstatus" avec la variable C "SRQstatus"
+    // avant 6/7/1999: - met à jour sigOn=0, appelle "signal(SIGUSR1, sigUSR1)"
+
+La mise à jour de SRQstatus déclenche la procédure GPIB:srqIsWritten
+
+La procédure GPIB:srqIsWritten met à jour la variable variable_SRQ ({SRQ !!!} ou {})
+    // après 6/7/1999: appelle "signal(SIGUSR1, sigUSR1)"
+
+Lorsque l'on appelle srq.wait, on a un "tkwait variable variable_SRQ"
+
+
+
+Si la carte n'envoie jamais de nouveau USR1 tant que l'on n'a pas fait de lecture GPIB:spe, pas de pb.
+Est-ce le cas? Sinon, il faut que ce soit après la lecture de variable_SRQ que l'on
+rétablisse "signal(SIGUSR1, sigUSR1)"
+
+
+
+-------
+
+18 juin 1999
+
+passage de ufico à Solaris7, réinstallation du package /home/ficadmin/packages/NICsbgpib
+dans /opt/NICgpib
+
+
+
+updateSRQ: SRQstatus = 0
+signale(On)->1
+updateSRQ: SRQstatus = 0
+signale(On)->1
+updateSRQ: SRQstatus = 0
+signale(On)->1
+updateSRQ: SRQstatus = 0
+signale(On)->1
+updateSRQ: SRQstatus = 0
+signale(On)->1
+updateSRQ: SRQstatus = 0
+signale(On)->1
+list = {-range 4}
+Q2,-5e-07,-2.5e-09,0,4,355X
+updateSRQ: SRQstatus = 0
+signale(On)->1
+list = {-range 1}
+list = {-range 4}
+list = {-range 1}
+
+sigUSR1(16)
+ signale(Off)->0
+  updateSRQ: SRQstatus = 1
+ signale(On)->1
+
+sigUSR1(16)
+ signale(Off)->0
+  updateSRQ: SRQstatus = 1
+ signale(On)->1
+sigUSR1(16)
+signale(Off)->0
+updateSRQ: SRQstatus = 1
+signale(On)->1
+sigUSR1(16)
+signale(Off)->0
+updateSRQ: SRQstatus = 1
+signale(On)->1
+sigUSR1(16)
+signale(Off)->0
+updateSRQ: SRQstatus = 1
+signale(On)->1
+sigUSR1(16)
+signale(Off)->0
+updateSRQ: SRQstatus = 1
+signale(On)->1
+sigUSR1(16)
+signale(Off)->0
+updateSRQ: SRQstatus = 1
+signale(On)->1
+updateSRQ: SRQstatus = 0
+signale(On)->1
+private.smu.rft smuE -> {Ready for Trigger}
+sigUSR1(16)
+signale(Off)->0
+updateSRQ: SRQstatus = 1
+signale(On)->1
+sigUSR1(16)
+signale(Off)->0
+updateSRQ: SRQstatus = 1
+signale(On)->1
+sigUSR1(16)
+signale(Off)->0
+updateSRQ: SRQstatus = 1
+signale(On)->1
+sigUSR1(16)
+signale(Off)->0
+updateSRQ: SRQstatus = 1
+signale(On)->1
+sigUSR1(16)
+signale(Off)->0
+updateSRQ: SRQstatus = 1
+signale(On)->1
+sigUSR1(16)
+signale(Off)->0
+updateSRQ: SRQstatus = 1
+signale(On)->1
+sigUSR1(16)
+signale(Off)->0
+updateSRQ: SRQstatus = 1
+signale(On)->1
+updateSRQ: SRQstatus = 0
+signale(On)->1
+private.smu.rft smuB -> {Ready for Trigger}
+sigUSR1(16)
+signale(Off)->0
+updateSRQ: SRQstatus = 1
+signale(On)->1
+sigUSR1(16)
+signale(Off)->0
+updateSRQ: SRQstatus = 1
+signale(On)->1
+sigUSR1(16)
+signale(Off)->0
+updateSRQ: SRQstatus = 1
+signale(On)->1
+sigUSR1(16)
+signale(Off)->0
+updateSRQ: SRQstatus = 1
+signale(On)->1
+sigUSR1(16)
+signale(Off)->0
+updateSRQ: SRQstatus = 1
+signale(On)->1
+sigUSR1(16)
+
+
+
+
+sigUSR1(16)
+ signale(Off)->0
+  updateSRQ: SRQstatus = 1
+   GPIB:srqIsWritten SRQstatus: 1
+ signale(On)->1
+
+sigUSR1(16)
+ signale(Off)->0
+  updateSRQ: SRQstatus = 1
+   GPIB:srqIsWritten SRQstatus: 1
+    signale(On)->1
+
+sigUSR1(16)
+ signale(Off)->0
+ updateSRQ: SRQstatus = 1
+   GPIB:srqIsWritten SRQstatus: 1
+ signale(On)->1
+ updateSRQ: SRQstatus = 0
+   GPIB:srqIsWritten SRQstatus: 0
+ signale(On)->1
+
+private.smu.rft smuB -> {Ready for Trigger}
+
+sigUSR1(16)
+ signale(Off)->0
+ updateSRQ: SRQstatus = 1
+  GPIB:srqIsWritten SRQstatus: 1
+ signale(On)->1
+sigUSR1(16)
+ signale(Off)->0
+ updateSRQ: SRQstatus = 1
+  GPIB:srqIsWritten SRQstatus: 1
+  signale(On)->1
+sigUSR1(16)
+signale(Off)->0
+updateSRQ: SRQstatus = 1
+GPIB:srqIsWritten SRQstatus: 1
+signale(On)->1
+sigUSR1(16)
+signale(Off)->0
+updateSRQ: SRQstatus = 1
+GPIB:srqIsWritten SRQstatus: 1
+signale(On)->1
+sigUSR1(16)
+signale(Off)->0
+updateSRQ: SRQstatus = 1
+GPIB:srqIsWritten SRQstatus: 1
+signale(On)->1
+sigUSR1(16)
+signale(Off)->0
+updateSRQ: SRQstatus = 1
+GPIB:srqIsWritten SRQstatus: 1
+signale(On)->1
+sigUSR1(16)
+signale(Off)->0
+updateSRQ: SRQstatus = 1
+GPIB:srqIsWritten SRQstatus: 1
+signale(On)->1
+updateSRQ: SRQstatus = 0
+GPIB:srqIsWritten SRQstatus: 0
+signale(On)->1
+private.smu.rft smuC -> {Ready for Trigger}

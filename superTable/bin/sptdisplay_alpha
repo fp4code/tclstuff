@@ -1,0 +1,20 @@
+#!/bin/sh
+# \
+exec wish "$0" ${1+"$@"}
+
+# (C) CNRS/LPN (FP) 2001.03.20
+
+package require fidev
+package require tkSuperTable_alpha 1.7
+package require tkstcb_Diodir 0.1
+package require tkstcb_gnuplot 2.4
+package require tkstcb_verifOptR 1.0
+
+set font "-b&h-lucidatypewriter-medium-r-normal-sans-12-*-*-*-*-*-iso8859-1"
+option add *Font $font
+
+. configure -width 600
+set win [::tkSuperTable::sptLoader .]
+
+tkSuperTable::changeEntry $win.ecb callbacks::gnuplot
+

@@ -1,0 +1,8 @@
+*~
+*.BAK
+*.bak
+CVS/
+Z/
+TAGS
+superTable/bin/essaiExternExec
+\#*\#

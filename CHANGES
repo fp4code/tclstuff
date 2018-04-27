@@ -1,0 +1,28 @@
+1999/01/14 (FP)
+Bug dans iv_valeursParDefaut/bipolaire.def.tcl : F0,1XO0X (2 fils) au lieu de F0,1XO1 (4 fils)
+---
+Création de iv_valeursParDefaut/bipolaire_2fils.def.tcl
+
+1999/01/27 (FP)
+smu 1.1
+Introduction du code commun ::smu::bubuRead
+Réponse à un souci de lecture incomplète. Il faudrait voir si la lecture peut se
+faire en plusieurs fois ou s'il y a un pb. de cablage.
+
+1999/04/01 (FP)
+Bug dans Bug dans iv_valeursParDefaut/bipolaire.def.tcl : O1X ne s'applique
+qu'à un des deux modes I(V) ou V(I). Il faut F0,O1XF1,O1X avec 2 X.
+
+idem bipolaire_pretri_2fils.def.tcl pour O0X
+bug similaire à 1999/01/14 dans ecom4.def.tcl
+
+1999/04/07 (FP)
+bug dans les mesures à 3 smus : Le compliance était celui de smuE (Se) pour les trois colonnes Se, Sb, Sc
+
+1999/11/29 (FP)
+Big Change: de partout, if ... -> if {...} et while ... while {...}
+
+2003/01/10 (FP)
+Mise à jour dans CVS,
+nombreuses créations de Poubelle et déplacements
+

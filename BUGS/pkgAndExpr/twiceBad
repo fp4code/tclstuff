@@ -1,0 +1,6 @@
+#!/bin/sh 
+#\
+exec tclsh "$0" "$@" 
+
+load [file join [pwd] libtwice.so] twice
+puts [expr {twice($argv)}]

@@ -1,0 +1,22 @@
+#!/bin/sh
+
+# \
+exec tclsh "$0" ${1+"$@"}
+
+set P 9922
+proc retu {} {
+    puts stderr "NAIT le [clock format [clock seconds] -format "%Y-%m-%d %H:%M:%S"], port ${::P}"
+    catch {exec ssh -v  -x -n -obatchmode=yes -R ${::P}:satiric.lpn.prive:22 ram94-1-81-57-198-61.fbx.proxad.net} blabla
+    puts stderr "CATCH: $blabla"
+    puts stderr "MORT le [clock format [clock seconds] -format "%Y-%m-%d %H:%M:%S"]"
+    incr ::P
+    if {${::P} > 9929} {
+        set ::P 9922
+    }
+    after 30000 retu
+}
+
+#close stdin
+retu
+
+vwait KIKI

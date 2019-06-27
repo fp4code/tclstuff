@@ -1,0 +1,36 @@
+#!/bin/sh
+
+# the next line restarts using wish \
+exec wish "$0" "$@"
+
+# LD_LIBRARY_PATH=$LD_LIBRARY_PATH":"/opt/NICgpib/lib ; export LD_LIBRARY_PATH ; exec wish "$0" "$@"
+
+if {[info tclversion] < 8.6} {
+    # error "Version ([info tclversion]) should be >= 8.4(64 bits integers)"
+    error "Version ([info tclversion]) should be >= 8.6 (unlimited integers)"
+}
+
+#
+# package require hyperhelp 1.2.999
+# set jstools_library /prog/Tcl/lib/jstools-4.5
+# lappend auto_path $jstools_library
+
+# puts stderr $env(LD_LIBRARY_PATH)
+
+set tcl_traceExec 0
+set tcl_traceCompile 0
+
+proc sourceCode {dir file} {
+    puts "sourceCode EST OBSOLETE, utiliser \"package\""
+    puts "### $file"
+    source $dir/library/$file
+}
+
+puts "conflit voir superTable (opt) et aide"
+package require fidev
+
+package require aide
+
+
+puts [clock format [clock seconds]]
+

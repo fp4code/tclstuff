@@ -1,5 +1,3 @@
-package provide flex 0.2
-
 set commandes {
 AB ACH AV AZ BC BGI BGV BSI BSM BSSI BSSV BST BSV BSVM CA *CAL? CL CLOSE *CLS CM CMD? CMM CN
 DI DO DV DZ END ERR? ESC *ESE *ESE? *ESR? FL FMT GOC *IDN? IN
@@ -21,7 +19,7 @@ puts stderr "Voir si \"FMT 3,2\" n'est pas mieux"
 package require fidev
 package require a4156
 package require gpib
-package require gpibLowLevel 1.3
+package require gpibLowLevel
 
 GPIB::main
 set variable_SRQ {}
@@ -224,7 +222,7 @@ proc ::a4156::private_flex::error_message {code} {
 		default {error "Bad 51x error code \"$code\""}
 	    }}
 	    2 {switch -- [string index $code 2] {
-		0 {return "Measurement range must be less than compliance (en fait, la range doit être juste adaptée)"}
+		0 {return "Measurement range must be less than compliance"}
 		1 {return "Range setup is wrong for the specified VMU"}
 		2 {return "Unable to set compliance for VSU or PGU"}
 		3 {return "Cannot open the relay driving more than 40 V"}
@@ -536,42 +534,15 @@ proc ::a4156::private_flex::error_message {code} {
 
 #== High speed spot measurement ==
 
-#TI TI?
-
-proc ::a4156::flex::high_speed_spot {a ch} {
+proc ::a4156::flex::high_speed_spot {a} {
     
 }
 
-
-
-
-
+#TI TI?
 #TTI TTI? TTV TTV? TV TV?
 
 
-set ALERTS(test_if_all_are_units) 0
-proc ::a4156::private_flex::test_if_all_are_units {a list} {
-    if {!$::ALERTS(test_if_all_are_units)} {
-	puts stderr "TO BE CODED: ::a4156::private_flex::test_if_all_are_units"
-    }
-    set ::ALERTS(test_if_all_are_units) 1
-}
 
-set ALERTS(test_if_all_are_smus) 0
-proc ::a4156::private_flex::test_if_all_are_smus {a list} {
-    if {!$::ALERTS(test_if_all_are_units)} {
-	puts stderr "TO BE CODED: ::a4156::private_flex::test_if_all_are_smus"
-    }
-    set ::ALERTS(test_if_all_are_smus) 1
-}
-
-set ALERTS(test_if_not_in_high_voltage) 0
-proc ::a4156::private_flex::test_if_not_in_high_voltage {a list} {
-    if {!$::ALERTS(test_if_not_in_high_voltage)} {
-	puts stderr "TO BE CODED: ::a4156::private_flex::test_if_not_in_high_voltage"
-    }
-    set ::ALERTS(test_if_not_in_high_voltage) 1
-}
 
 set measurement_modes {
 
@@ -583,7 +554,6 @@ set measurement_modes {
 
 
 proc ::a4156::flex::enable_time_stamp {a} {
-    puts stderr "Warning, no time stamp if dt < 2ms"
     $a write "TSC 1"
 }
 
@@ -604,12 +574,6 @@ proc ::a4156::flex::get_formatted_time_stamp {a} {
 
 
 #=== Spot measurement "MM 1" "LRN? 1..6" ===
-
-proc ::a4156::flex::choose_spot_measurement {a units} {
-    $a write "MM 1,[join $units ,]"
-}
-
-
 
 #DI
 #DV
@@ -652,30 +616,6 @@ proc ::a4156::flex::vsu_force_output_voltage {a unit voltage} {
     $a write "DV $chnum,12,$voltage"
 }
 
-proc ::a4156::flex::smu_force_output_current {a unit range current compliance} {
-    set chnum [::a4156::private_flex::chnum $unit]
-    switch -- $range {
-	"Auto"  {set r 0}
-	"10pA"  {set r 9}
-	"100pA" {set r 10}
-	"1nA"   {set r 11}
-	"10nA"  {set r 12}
-	"100nA" {set r 13}
-	"1µA"   {set r 14}
-	"10µA"  {set r 15}
-	"100µA" {set r 16}
-	"1mA"   {set r 17}
-	"10mA"  {set r 18}
-	"100mA" {set r 19}
-	"1A"    {set r 20}
-	default {error "Bad range \"$range\""}
-    }
-    set argums "$chnum,$r,$current"
-    if {$compliance != {}} {
-	append argums ",$compliance"
-    }
-    $a write "DI $argums"
-}
 
 
 
@@ -796,11 +736,6 @@ proc ::a4156::flex::get_number_of_sweep_steps {a} {
 
 
 #=== Sampling measurement "MM 10" "LRN? 47" ===
-
-proc ::a4156::flex::choose_sampling_measurement {a units} {
-    $a write "MM 10,[join $units ,]"
-}
-
 
 #TSC
 
@@ -946,9 +881,9 @@ proc ::a4156::flex::get_language {a} {
     $a write "CMD?"
     set rep [$a read_phrase]
     switch -- $rep {
-	"+0" {return "SCPI"}
+	"0" {return "SCPI"}
 	"+1" {return "FLEX"}
-	"+2" {return "4145"}
+	"2" {return "4145"}
 	default {error "Bad response to \"CMD?\": \"$rep\""}
     }
 }
@@ -978,85 +913,9 @@ proc ::a4156::flex::get_language {a} {
 #PRN
 
 
-#=== self-test ===
-
-#RCV *TST?
-
-
 #=== imprévus  ===
 
-# clears status byte register, standard event register, error register, but does not clear the enable registers 
-proc a4156::flex::clear_registers {a} {
-    $a write "*CLS"
-}
 
-
-#==== Status Byte Register *CLS *STB? *SRE ====
-
-proc ::a4156::flex::set_status_byte_register_mask {a mask} {
-    $a write "*SRE $mask"
-}
-
-proc ::a4156::flex::get_status_byte_register_mask {a} {
-    $a write "*SRE?"
-    return [$a read_phrase]
-}
-
-# idem spoll, but doesn't clear SRQ
-proc ::a4156::flex::get_status_byte_register {a} {
-    $a write "*STB?"
-    return [$a read_phrase]
-}
-
-
-
-#==== Standard Event Status Register ====
-
-proc ::a4156::flex::set_event_status_register_mask {a mask} {
-    $a write "*ESE $mask"
-}
-
-proc ::a4156::flex::get_event_status_register_mask {a} {
-    $a write "*ESE?"
-    return [$a read_phrase]
-}
-
-proc ::a4156::flex::get_event_status_register {a} {
-    $a write "*ESR?"
-    return [$a read_phrase]
-# 1:OPC, 8:Error, 16:Parameter_Error, 32:Syntax_Error
-}
-
-
-
-#*OPC *WAI
-# Pour certains appareils, une seconde commande peut être mise en route alors
-# que la première commande (appelée overlapping command) n'est pas complètement achevée.
-# Pour bloquer la seconde commande et les suivantes tant que la première commande n'est pas
-# achevée, appeler *WAI avant la seconde commande.
-
-proc a4156::flex::wait_opc_before_continuing {a} {
-    $a write "*WAI"
-}
-
-# depends on read timeout
-proc a4156::flex::wait_operation_complete {a} {
-    $a write "*OPC?"
-    set r [$a read_phrase]
-    if {$r != 1} {
-	error "*OPC? returns \"$r\" instead of \"1\""  
-    }
-}
-
-proc a4156::flex::abort {a} {
-    $a write "AB"
-}
-
-
-
-
-
-# clears error register queue
 proc ::a4156::flex::get_errors {a} {
     $a write "ERR?"
     set rep [$a read_phrase]
@@ -1078,20 +937,30 @@ proc ::a4156::flex::get_errors {a} {
     return [lrange $errlist 0 $inone] 
 }
 
-# drops one error register stack element
-proc a4156::flex::get_error_register_and_message {a} {
-    $a write ":SYST:ERR?"
-    return [split [$a read_phrase] ,]    
-}
+
+
+
+
+#ERR?
+#*ESE
+#*ESE?
+#*ESR?
+#*SRE
+#*SRE?
+#*STB?
+#:SYST:ERR?
+
+#AB
+#*CLS
+
+#*OPC *OPC? *WAI
+
+#RCV *TST?
+
 
 proc a4156::flex::clear_output_data_buffer {a} {
     $a write "BC"
 }
-
-
-
-
-
 
 
 
@@ -1317,11 +1186,11 @@ VMD WS XE
 
 proc ::a4156::flex::list_active_outputs {a} {
     $a write "LRN? 0"
-    set response [$a read_phrase]
+    set response [$a read]
     switch -- [string range $response 0 1] {
 	CL {return {}}
 	CN {return [split [string range $response 3 end] ,]}
-	error "Bad response \"$response\""
+	return -code error "Bad response \"$response\""
     }
 }
 
@@ -1330,12 +1199,9 @@ proc ::a4156::flex::set_all_outputs_off {a} {
 }
 
 proc ::a4156::flex::set_output_off {a list} {
-    if {$list == {}} {
-	error "Void list not permitted. Please call flex::set_all_outputs_off instead." 
-    }
-    ::a4156::private_flex::test_if_all_are_units $a $list
-    ::a4156::private_flex::test_if_not_in_high_voltage $a $list
-    $a write "CL [join $list ,]"
+    flex::test_if_all_are_units $a $list
+    flex::test_if_not_in_high_voltage $a $list
+    $a write "CL [list join $list ,]"
 }
 
 proc ::a4156::flex::set_all_outputs_on {a} {
@@ -1343,27 +1209,32 @@ proc ::a4156::flex::set_all_outputs_on {a} {
 }
 
 proc ::a4156::flex::set_output_on {a list} {
-    if {$list == {}} {
-	error "Void list not permitted. Please call flex::set_all_outputs_on instead." 
-    }
-    ::a4156::private_flex::test_if_all_are_units $a $list
-    ::a4156::private_flex::test_if_not_in_high_voltage $a $list
-    $a write "CN [join $list ,]"
+    flex::test_if_all_are_units $a $list
+    flex::test_if_not_in_high_voltage $a $list
+    $a write "CN [list join $list ,]"
 }
 
 proc ::a4156::flex::set_output_temporary_to_zero {a list} {
-    $a write "DZ [join $list ,]"
+    $a write "DZ [list join $list ,]"
 }
 
 proc ::a4156::flex::set_output_to_saved_state {a list} {
     # The "DZ" saved state is cleared by US, CL, CA, *TST? *RST or Device_Clear
-    $a write "RZ [join $list ,]"
+    $a write "RZ [list join $list ,]"
 }
 
 proc ::a4156::flex::set_output_to_zero {a list} {
     # difference avec DZ ?
-    $a write "IN [join $list ,]"
+    $a write "IN [list join $list ,]"
 }
+
+
+#== Average On-Off ==
+
+#$number >= 1 && $number <= 1023 
+#$a write "AV $number"
+
+
 
 
 #== "LRN? 1..6 21..28" ==
@@ -1386,28 +1257,15 @@ proc ::a4156::flex::get_smu_filter_status {a} {
     return [::a4156::private_flex::interpret_multiple_status FL $rep]
 }
 
+
+# Avec argument liste vide, opère sur tous les smus
 proc ::a4156::flex::set_smu_filter_off {a smulist} {
-    if {$smulist == {}} {
-	error "Void list not permitted. Please call flex::set_all_smu_filters_off instead." 
-    }
-    ::a4156::private_flex::test_if_all_are_smus $a $smulist
     $a write "FL 0,[join $smulist ,]"
 }
 
+# Avec argument liste vide, opère sur tous les smus
 proc ::a4156::flex::set_smu_filter_on {a smulist} {
-    if {$smulist == {}} {
-	error "Void list not permitted. Please call flex::set_all_smu_filters_on instead." 
-    }
-    ::a4156::private_flex::test_if_all_are_smus $a $smulist
     $a write "FL 1,[join $smulist ,]"
-}
-
-proc ::a4156::flex::set_all_smu_filters_off {a} {
-    $a write "FL 0"
-}
-
-proc ::a4156::flex::set_all_smu_filters_on {a} {
-    $a write "FL 1"
 }
 
 puts "LOUCHE, il faut appeler deux fois ::a4156::flex::get_smu_filter_status
@@ -1418,83 +1276,14 @@ Normal, on lit la réponse à deux questions auparavant
 
 #== Trigger-mode, Averaging, Auto-calibration, Data output format, Measurement mode "LRN? 31" ==
 
-proc ::a4156::flex::get_trigger_mode {a} {
-    $a write "LRN? 31"
-    set repg [$a read_phrase]
-    set rep [lindex [split $repg \;] 0]
-    if {![string match "TM *" $rep]} {
-	error "Bad LRN? 31 response: \"$rep\""
-    }
-    return [string index $rep 3]
-}
-
-proc ::a4156::flex::set_trigger_mode {a mode} {
-    $a write "TM $mode" 
-}
-
-proc ::a4156::flex::get_averaging_number {a} {
-    $a write "LRN? 31"
-    set repg [$a read_phrase]
-    set rep [lindex [split $repg \;] 1]
-    if {![string match "AV *" $rep]} {
-	error "Bad LRN? 31 response: \"$rep\""
-    }
-    return [lindex [split [string range $rep 3 end] ,] 0]
-}
-
-proc ::a4156::flex::set_averaging_number {a number} {
-    if {$number < 1 || $number > 1023} {
-	error "Bad averaging number \"$number\", should be 1..1023"
-    }
-    $a write "AV $number" 
-}
-
-
+#TM
+#AV
 #CM
 #FMT
 #MM
 
 
 #== Measurement ranging "LRN? 32" ==
-
-proc ::a4156::flex::get_measurement_ranges {a} {
-    $a write "LRN? 32"
-    set rep [$a read_phrase]
-    set r [split $rep \;]
-    return $r
-}
-
-proc ::a4156::private_flex::range_of_index {i} {
-    switch -- $i {
-	 0 {return Auto}
-	 9 {return Auto_10pA}
-	10 {return Auto_100pA}
-	11 {return Auto_1nA}
-	12 {return Auto_10nA}
-	13 {return Auto_100nA}
-	14 {return Auto_1µA}
-	15 {return Auto_10µA}
-	16 {return Auto_100µA}
-	17 {return Auto_1mA}
-	18 {return Auto_10mA}
-	19 {return Auto_100mA}
-	20 {return Auto_1A}
-	 -9 {return Fixed_10pA}
-	-10 {return Fixed_100pA}
-	-11 {return Fixed_1nA}
-	-12 {return Fixed_10nA}
-	-13 {return Fixed_100nA}
-	-14 {return Fixed_1µA}
-	-15 {return Fixed_10µA}
-	-16 {return Fixed_100µA}
-	-17 {return Fixed_1mA}
-	-18 {return Fixed_10mA}
-	-19 {return Fixed_100mA}
-	-20 {return Fixed_1A}
-    }
-
-}
-
 
 #RI
 #RV
@@ -1556,15 +1345,7 @@ proc ::a4156::flex::get_zero_offset_status {a} {
 	    error "Bad \"LRN? 42\" response: \"$rep\" (\"$rr\" doesn't match \"SOC *\" )"
 	} else {
 	    set rrr [split [string range $rr 4 end] ,]
-	    if {[llength $rrr] == 1} {
-		if {$rrr == 0} {
-		    return "All Off"
-		} elseif {$rrr == 1} {
-		    return "All On"
-		} else {
-		    error "Bad \"LRN? 42\" response: \"$rep\ (rrr == \"$rrr\")"
-		}
-	    } elseif {[llength $rrr] != 2} {
+	    if {[llength $rrr] != 2} {
 		error "Bad \"LRN? 42\" response: \"$rep\ (rrr == \"$rrr\")"
 	    }
 	    switch -- [lindex $rrr 0] {
@@ -1670,12 +1451,12 @@ proc ::a4156::flex::set_short_integration_time_value {a v} {
 # 16.7 ms ... 2 s
 proc ::a4156::flex::set_long_integration_time_value {a v} {
     if {$v < 20e-3 || $v > 2} {
-	error "Out of range long integration time value \"$v\", should be 20e-3(with 50Hz mains)..2"
+	error "Out of range long integration time value \"$v\", should be 50e-3(with 50Hz mains)..2"
     }
     $a write "SIT 3,$v"
 }
 
-proc ::a4156::flex::set_integration_time_type {a type} {
+proc ::a4156::flex::set_integration_type {a type} {
     switch -- $type {
 	Short {set t 1}
 	Period {set t 2}
@@ -1804,167 +1585,6 @@ set reset_result {
 
 
 #Martyrs programmables
-
-    #1 .. 6  
-    # 21..28
-#        99 get_language
-proc ditou {} {
-    foreach {n c} {
-	99 get_language
-	0  list_active_outputs
-	30 get_smu_filter_status
-        31 get_trigger_mode
-        31 get_averaging_number
-	32 get_measurement_ranges
-	42 get_zero_offset_status
-	43 get_integration_time
-	46 get_smu_measurement_mode
-    } {
-	puts -nonewline stderr [format "%2d %-30s " $n $c]
-	puts stderr [a4156 flex::$c]
-    }
-}
-
-
-# Cf. Programming Manual ch.3 #
-
-# High-Speed Spot Measurements p. 3-6#
-
-proc example_high_speed_spot_measurement {} {
-
-    # a4156 DCL
-    
-    # a4156 flex::list_active_outputs
-    # a4156 flex::set_all_outputs_on
-    # a4156 flex::set_all_outputs_off
-    # a4156 flex::set_output_on  [list_of 1 2 3 4]
-    # a4156 flex::set_output_off [list_of 1 2 3 4]
-    
-    # a4156 flex::get_smu_filter_status
-    # a4156 flex::set_smu_filter_off [list_of 1 2 3 4]
-    # a4156 flex::set_smu_filter_on  [list_of 1 2 3 4]
-    # a4156 flex::set_all_smu_filters_off
-    # a4156 flex::set_all_smu_filters_on
-    
-    # a4156 flex::set_averaging_number [integer_interval 1 1023]
-    # a4156 flex::get_averaging_number
-    
-    # a4156 flex::get_integration_time
-    # a4156 flex::set_short_integration_time_value [float_interval 80e-6 10.16e-3]
-    # a4156 flex::set_long_integration_time_value  [float_interval 50e-3 2]
-    # a4156 flex::set_integration_time_type [one_of Short Period Long]
-    
-    # flex::smu_force_output_voltage [one_of SMU1 SMU2 SMU3 SMU4] [one_of Auto 2V 20V 40V 100V 200V] $voltage [one_of {} $compliance]
-    # flex::smu_force_output_current [one_of SMU1 SMU2 SMU3 SMU4] [one_of Auto 10pA ...100mA] $current [one_of {} $compliance]
-    
-    
-    
-    
-    
-    # a4156 flex::auto_zero_enable
-    # a4156 flex::auto_zero_disable
-    
-    # a4156 flex::set_trigger_mode [one_of SMU1 SMU2 SMU3 SMU4]
-    # a4156 flex::get_trigger_mode
-    
-    
-    a4156 DCL
-    a4156 write US
-    a4156 write "FMT 1"
-    a4156 flex::set_averaging_number 1
-    a4156 flex::set_short_integration_time_value .0005
-    a4156 flex::set_long_integration_time_value .04
-    a4156 flex::set_integration_time_type Short
-    a4156 flex::set_all_smu_filters_off
-    a4156 flex::set_output_on {1 2 3 4}
-    a4156 flex::smu_force_output_voltage 1 2V 0 0.01
-    a4156 flex::smu_force_output_voltage 2 2V 0 0.01
-    a4156 flex::smu_force_output_voltage 3 2V 0 0.01
-    a4156 flex::smu_force_output_voltage 4 2V 0 0.01
-    a4156 flex::wait_operation_complete
-    set err [a4156 flex::get_error_register_and_message]
-    puts $err
-    if {[lindex $err 0] == 0} {
-	set l [list]
-	for {set i 0} {$i < 100} {incr i} {a4156 write "TI? 2,15"; lappend l [a4156 read_phrase]}
-    } else {
-	puts "ERROR : [lindex $err 1]"
-    }
-    a4156 flex::set_all_outputs_off
-    set l [list]
-    for {set i 0} {$i < 100} {incr i} {a4156 write "TI 2,15"}
-    
-}
-
-# Cf. 3-9
-proc example_spot_measurement {} {
-    a4156 DCL
-    a4156 write US ;#  attention,  a4 write "US" ; détruit *SRE, *ESE, etc.
-    a4156 write "FMT 1"
-    a4156 flex::set_averaging_number 1
-    a4156 flex::set_short_integration_time_value .0005
-    a4156 flex::set_long_integration_time_value .04
-    a4156 flex::set_integration_time_type Period
-    a4156 flex::set_all_smu_filters_off
-    a4156 flex::set_output_on {1 2 3 4}
-    a4156 flex::smu_force_output_voltage SMU1 2V 0 0.01
-    a4156 flex::smu_force_output_voltage SMU2 2V 0 0.01
-    a4156 flex::smu_force_output_voltage SMU3 2V 0 0.01
-    a4156 flex::smu_force_output_voltage SMU4 2V 0 0.01
-    a4156 flex::choose_spot_measurement {1 2}
-    a4156 flex::set_smu_measurement_mode SMU1 Current
-    a4156 flex::set_smu_measurement_mode SMU2 Current
-    a4156 flex::enable_time_stamp
-    a4156 flex::get_error_register_and_message
-    a4156 flex::start_measurement
-    a4156 flex::get_error_register_and_message
-    a4156 flex::set_all_outputs_off
-    a4156 flex::get_number_of_measurements_in_buffer
-    a4156 flex::read_measurements All
-}
-
-
-
-proc shift_index {l i s} {
-    return [lindex $l [expr {$i + $s}]]
-}
-
-proc extract_current {s index smu} {
-    set type [expr {[lindex $s $index] >> 7}]
-    set datatype [expr {([shift_index $s $index 0] >> 4) & 7}]
-    set range [expr {([shift_index $s $index 0] & 7)*2 + ([shift_index $s $index 1]] >> 7)}]
-    set data [expr {(((
-		       [lindex $s [expr {$index+1}]] & 127
-		       )*256. + [lindex $s [expr {$index + 2}]]
-		      )*256. + [lindex $s [expr {$index + 3}]]
-		     )*8. + ([lindex $s [expr {$index + 4}]] >> 5)
-		}]
-    set status 
-}
-
-proc extract_time {s index smu} {
-    if {(([lindex $s $index] >> 4) & 7) != 3} {
-	error "Bad s $index, to time"
-    }
-    if {([lindex $s [expr {$index + 5}]] & 15) != $smu} {
-	error "Bad s $index, no smu$smu"
-    }
-    return [expr {((((((
-			[lindex $s $index] & 15
-			)*256. + [lindex $s [expr {$index + 1}]]
-		       )*256. + [lindex $s [expr {$index + 2}]]
-		      )*256. + [lindex $s [expr {$index + 3}]]
-		     )*256. + [lindex $s [expr {$index + 4}]]
-		    )*8. + ([lindex $s [expr {$index + 5}]] >> 5))*1e-4}]
-}
-
-
-proc extract_bin s {
-    if {[lindex $s 24] != 10} {
-	error "Bad s, no 10 at the end"
-    }
-    return [format "%10.4f %10.4f" [extract_time $s 0 1] [extract_time $s 12 2]]
-}
 
 
 

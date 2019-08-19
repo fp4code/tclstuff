@@ -212,6 +212,7 @@ package ifneeded phi10_csv              0.1 "source $fidev_tclDir/csv/library/cs
 package ifneeded polyexec               0.1 "source $fidev_tclDir/polyexec/library/polyexec.0.1.tcl"
 package ifneeded pvm                    0.1 "source $fidev_tclDir/pvm/library/pvm.0.1.tcl"
 package ifneeded res1smu                0.1 "source $fidev_tclDir/mesures/library/res1smu.0.1.tcl"
+package ifneeded res1smu                0.2 "source $fidev_tclDir/mesures/library/res1smu.0.2.tcl"
 package ifneeded scilab                 0.1 "source $fidev_tclDir/scilab/library/scilab.tcl"
 package ifneeded scpack                 0.2 "source $fidev_tclDir/scpack/library/scpack.0.2.tcl"
 package ifneeded scplxi                 0.1 "source $fidev_tclDir/sunInterval/library/scplxi.tcl"

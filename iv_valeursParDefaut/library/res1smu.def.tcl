@@ -1,4 +1,4 @@
-package require res1smu 0.1
+package require res1smu 0.2
 
 GPIB::renameGPIB smu {}
 

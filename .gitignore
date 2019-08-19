@@ -2,7 +2,9 @@
 *.BAK
 *.bak
 CVS/
-Z/
+*/Z/
 TAGS
 superTable/bin/essaiExternExec
 \#*\#
+Poubelle/
+*.so

@@ -16,6 +16,7 @@ proc sourceCode {dir file} {
 
 package require fidev
 package require a4156
+package require flex
 
 set AsdexTclDir $FIDEV_TCL_ROOT
 cd $AsdexTclDir
@@ -56,7 +57,7 @@ set t [a4156 read_time_stamp]
 a4156 write "FMT 3,1"
 set t [a4156 read_time_stamp]
 
-
+couic
 
 a4156 write "TSC 1"                ;# enable timestamp
 a4156 write "TSR"                  ;# set timestamp to 0
